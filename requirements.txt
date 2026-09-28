@@ -1,0 +1,7 @@
+langchain>=1.0,<2        # the agent framework (create_agent, @tool)
+langchain-ollama>=1.0    # connects LangChain to your local Ollama models
+langgraph>=1.0,<2        # runtime + memory used by create_agent
+ddgs>=9.0                # DuckDuckGo web search (no API key)
+beautifulsoup4>=4.12     # extracts text from web pages
+rich>=13.0               # pretty terminal output
+pytest>=8.0              # tests
