@@ -28,6 +28,10 @@ You: research the growth of electric vehicles in India and write a report
 ╰───────────────────────────────────────────────╯
 ```
 
+**Study notes:**
+- [docs/1_LangChain_Framework.md](docs/1_LangChain_Framework.md): LangChain definition, architecture, components and ecosystem (long-answer notes)
+- [docs/2_Project_Explanation.md](docs/2_Project_Explanation.md): how this project works, its tools and the LangChain features it uses
+
 ---
 
 ## 1. Setup (one time)
