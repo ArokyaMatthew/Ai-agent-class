@@ -98,3 +98,39 @@ def test_agent_remembers_conversation():
 
     # both turns are stored in the same thread -> memory works
     assert [m.content for m in result["messages"] if m.type == "human"] == ["My name is Arun", "What is my name?"]
+
+
+# ------------------------------------------------------------------ small-model safety nets
+def test_parse_text_tool_calls():
+    from agent import parse_text_tool_calls
+
+    calls = parse_text_tool_calls('<|tool_call|>[{"name": "calculator", "arguments": {"expression": "2+2"}}]')
+    assert [(c["name"], c["args"]) for c in calls] == [("calculator", {"expression": "2+2"})]
+    calls = parse_text_tool_calls('Sure! {"name": "web_search", "parameters": "{\\"query\\": \\"AI\\"}"}')
+    assert [(c["name"], c["args"]) for c in calls] == [("web_search", {"query": "AI"})]
+    assert parse_text_tool_calls("The answer is [1, 2] and {'a': 1}.") == []
+    assert parse_text_tool_calls('{"name": "delete_everything", "arguments": {}}') == []
+
+
+def test_agent_repairs_tool_call_written_as_text():
+    """Model writes the tool call as TEXT -> middleware turns it into a real tool call."""
+    llm = ScriptedLLM(messages=iter([
+        AIMessage('[{"name": "calculator", "arguments": {"expression": "45999 * 0.18"}}]'),
+        AIMessage("18% GST on 45,999 is 8,279.82 rupees."),
+    ]))
+    result = build_agent(model=llm).invoke({"messages": [("user", "18% GST on 45999?")]},
+                                           {"configurable": {"thread_id": "t3"}})
+
+    tool_outputs = [m.content for m in result["messages"] if m.type == "tool"]
+    assert tool_outputs == ["45999 * 0.18 = 8279.82"]
+    assert result["messages"][-1].content == "18% GST on 45,999 is 8,279.82 rupees."
+
+
+def test_report_is_saved_even_if_model_forgets(fake_internet):
+    import main
+
+    llm = ScriptedLLM(messages=iter([AIMessage("# Solar Power\n## Summary\nSolar is growing.")]))
+    main.run_turn(build_agent(model=llm), "research solar power", "t4")
+
+    saved = list(fake_internet.glob("*-solar-power.md"))
+    assert len(saved) == 1 and saved[0].read_text().startswith("# Solar Power")

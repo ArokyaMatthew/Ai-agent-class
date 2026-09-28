@@ -3,7 +3,7 @@ Run the Research Agent in your terminal.
 
     python main.py                      # interactive chat
     python main.py "research electric cars in India and write a report"
-    python main.py --model llama3.1:8b  # use a different Ollama model
+    python main.py --model qwen2.5:7b   # use a different Ollama model
 """
 
 import argparse
@@ -15,6 +15,7 @@ from rich.markdown import Markdown
 from rich.panel import Panel
 
 from agent import DEFAULT_MODEL, build_agent, build_model
+from tools import save_report
 
 console = Console()
 
@@ -30,6 +31,7 @@ EXAMPLES = """[bold]Try asking:[/bold]
 def run_turn(agent, question: str, thread_id: str) -> None:
     """Send one question and show every step the agent takes."""
     config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 40}
+    final_answer, report_saved = "", False
 
     # stream_mode="updates" gives us each step of the ReAct loop as it happens
     with console.status("[cyan]Thinking...", spinner="dots") as status:
@@ -41,13 +43,22 @@ def run_turn(agent, question: str, thread_id: str) -> None:
                             args = ", ".join(f"{k}={str(v)[:70]!r}" for k, v in call["args"].items())
                             console.print(f"[yellow]>> Action:[/yellow] [bold]{call['name']}[/bold]({args})")
                             status.update(f"[cyan]Running {call['name']}...")
+                            report_saved |= call["name"] == "save_report"
+                        final_answer = ""
                     elif isinstance(msg, ToolMessage):
                         preview = str(msg.content).replace("\n", " ")[:150]
                         console.print(f"[dim]   Observation: {preview}...[/dim]")
                         status.update("[cyan]Thinking...")
-                    elif isinstance(msg, AIMessage) and msg.text:
-                        console.print(Panel(Markdown(msg.text), title="ResearchBuddy",
-                                            border_style="green"))
+                    elif isinstance(msg, AIMessage):
+                        final_answer = msg.text
+
+    if final_answer:
+        console.print(Panel(Markdown(final_answer), title="ResearchBuddy", border_style="green"))
+    # Small models sometimes write the report but forget to call save_report -> save it for them.
+    if final_answer.lstrip().startswith("# ") and not report_saved:
+        title = final_answer.lstrip().splitlines()[0].lstrip("# ")
+        result = save_report.invoke({"title": title, "markdown_content": final_answer})
+        console.print(f"[green]{result}[/green]")
 
 
 def main() -> None:

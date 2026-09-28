@@ -59,7 +59,7 @@ def web_search(query: str) -> str:
 # ---------------------------------------------------------------- 2. read a web page
 @tool
 def read_webpage(url: str) -> str:
-    """Open a web page and return its main text (first ~4000 characters).
+    """Open a web page and return its main text (first ~3000 characters).
 
     Use this after web_search to read the most useful result in detail.
     """
@@ -73,7 +73,7 @@ def read_webpage(url: str) -> str:
     text = re.sub(r"\n\s*\n+", "\n\n", soup.get_text("\n")).strip()
     if not text:
         return f"The page {url} has no readable text."
-    return text[:4000]
+    return text[:3000]
 
 
 # ---------------------------------------------------------------- 3. wikipedia

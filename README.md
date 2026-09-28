@@ -34,14 +34,18 @@ You: research the growth of electric vehicles in India and write a report
 
 **Step 1: Install Ollama.** Download it from <https://ollama.com/download> (Windows / Mac / Linux).
 
-**Step 2: Download a model** that supports tool calling (about 4.7 GB):
+**Step 2: Get a model.** The default is **`phi4-mini`** (2.5 GB, supports tool calling).
+If `ollama list` already shows it, skip this step. Otherwise:
 
 ```bash
-ollama pull qwen2.5:7b
+ollama pull phi4-mini
 ```
 
-> Low on RAM (8 GB)? Use `ollama pull qwen2.5:3b` and run with `--model qwen2.5:3b`.
-> Other good choices: `llama3.1:8b`, `qwen3:8b`, `mistral-nemo`.
+> `nomic-embed-text` is an *embedding* model. It turns text into numbers for search and
+> can't chat or call tools, so it can't be the agent's brain.
+>
+> Want better reports? Bigger models follow instructions better: `ollama pull qwen2.5:7b`
+> (4.7 GB), then run `python main.py --model qwen2.5:7b`. `llama3.1:8b` and `qwen3:8b` also work.
 
 **Step 3: Install the Python packages** (Python 3.10+):
 
@@ -62,7 +66,7 @@ Or ask one question directly:
 
 ```bash
 python main.py "research the James Webb Space Telescope and write a report"
-python main.py --model llama3.1:8b "what is LangChain and who created it?"
+python main.py --model qwen2.5:7b "what is LangChain and who created it?"
 ```
 
 In chat: `/new` starts a fresh conversation, `/exit` quits.
@@ -93,6 +97,7 @@ and saves the report, and that it remembers the conversation.
 | **Tools** | Python functions the LLM can ask to run. The `@tool` decorator turns the name, docstring and arguments into a schema the LLM understands | `tools.py` |
 | **System prompt** | Instructions that define the agent's role and rules | `SYSTEM_PROMPT` in `agent.py` |
 | **Agent** | Loop that connects the model and tools: `create_agent(model, tools, system_prompt)` | `build_agent()` in `agent.py` |
+| **Middleware** | Code that runs inside the agent loop. Ours repairs tool calls that small models write as plain text | `fix_text_tool_calls` in `agent.py` |
 | **Memory (checkpointer)** | Saves the conversation per `thread_id` so the agent remembers earlier messages | `InMemorySaver()` in `agent.py` |
 | **Streaming** | Shows each step (tool call, result, answer) as it happens | `run_turn()` in `main.py` |
 
@@ -151,7 +156,9 @@ To add your own tool: write a function with `@tool` and a clear docstring in
 | Problem | Fix |
 |---|---|
 | `Ollama problem: ... connect` | Start Ollama (open the app, or run `ollama serve`) |
-| `model "qwen2.5:7b" not found` | Run `ollama pull qwen2.5:7b` |
-| Very slow answers | Use a smaller model: `--model qwen2.5:3b` |
-| Agent doesn't use tools | Use a model with tool support (qwen2.5, llama3.1, qwen3, mistral-nemo) |
+| `model "phi4-mini" not found` | Run `ollama pull phi4-mini` |
+| `does not support tools` | Update Ollama to the latest version, or use `--model qwen2.5:7b` |
+| Very slow answers | Normal on a laptop without a GPU: a full report can take a few minutes |
+| Report is short or misses facts | Small model limit. Try `--model qwen2.5:7b`, or ask it to read more pages |
+| Agent doesn't use tools | Use a model with tool support (phi4-mini, qwen2.5, llama3.1, qwen3) |
 | `web_search` errors | Check your internet connection; DuckDuckGo sometimes rate-limits, so wait a minute |
